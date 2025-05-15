@@ -54,6 +54,12 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				crypto: {
+          dark: {
+            bg: "#0F1222",
+            card: "#171C2C",
+            accent: "#262B3D",
+            border: "#252A3C"
+          },
 					purple: {
 						dark: "#1A1F2C",
 						DEFAULT: "#7E69AB",
@@ -64,7 +70,8 @@ export default {
 						pink: "#D946EF",
 						blue: "#1EAEDB",
 						orange: "#F97316", 
-					}
+					},
+          border: "#252A3C"
 				}
 			},
 			borderRadius: {
@@ -96,13 +103,22 @@ export default {
 					'50%': {
 						opacity: '0.7'
 					}
-				}
+				},
+        'float': {
+          '0%, 100%': {
+            transform: 'translateY(0)',
+          },
+          '50%': {
+            transform: 'translateY(-10px)',
+          },
+        },
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'glow': 'glow 3s infinite ease-in-out',
 				'pulse-glow': 'pulse-glow 2s infinite ease-in-out',
+        'float': 'float 5s ease-in-out infinite',
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

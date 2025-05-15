@@ -41,7 +41,7 @@
   }
 
   body {
-    @apply bg-crypto-purple-dark text-foreground min-h-screen;
+    @apply bg-crypto-dark-bg text-foreground min-h-screen;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
@@ -52,7 +52,7 @@
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-crypto-purple-dark;
+    @apply bg-crypto-dark-bg;
   }
   
   ::-webkit-scrollbar-thumb {
@@ -79,4 +79,47 @@
 
 #root {
   @apply min-h-screen w-full;
+}
+
+/* Glassmorphism effect */
+.glass-card {
+  background: rgba(26, 31, 44, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(126, 105, 171, 0.2);
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Gradient text for headings */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-crypto-neon-blue via-crypto-neon-purple to-crypto-neon-pink;
+}
+
+/* Custom hover effect for cards */
+.hover-card-effect {
+  @apply relative transition-all duration-300 hover:shadow-xl;
+}
+
+.hover-card-effect::after {
+  content: '';
+  @apply absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  pointer-events: none;
+}
+
+.hover-card-effect:hover::after {
+  @apply opacity-100;
 }

@@ -1,6 +1,6 @@
 
-import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Star } from "lucide-react";
 
 interface RatingProps {
   value: number;
@@ -9,38 +9,56 @@ interface RatingProps {
   className?: string;
 }
 
-export function Rating({ 
-  value, 
-  max = 5, 
-  size = "md", 
-  className 
-}: RatingProps) {
-  // Determine size in pixels
-  const sizeInPx = {
-    sm: 14,
-    md: 16,
-    lg: 20
-  }[size];
-
+const Rating = ({ value, max = 5, size = "md", className }: RatingProps) => {
+  // Convert value to nearest 0.5
+  const roundedValue = Math.round(value * 2) / 2;
+  
+  const sizeClasses = {
+    sm: "h-3 w-3",
+    md: "h-4 w-4",
+    lg: "h-5 w-5"
+  };
+  
   return (
     <div className={cn("flex items-center", className)}>
-      {[...Array(max)].map((_, i) => (
-        <Star
-          key={i}
-          size={sizeInPx}
-          className={cn(
-            "transition-colors",
-            i < Math.floor(value)
-              ? "text-crypto-neon-orange fill-crypto-neon-orange"
-              : i < value
-              ? "text-crypto-neon-orange fill-crypto-neon-orange/50" // Half star
-              : "text-gray-400" // Empty star
-          )}
-        />
-      ))}
-      <span className="ml-2 text-sm text-gray-300">{value.toFixed(1)}</span>
+      <div className="flex">
+        {[...Array(max)].map((_, i) => {
+          const starValue = i + 1;
+          return (
+            <span key={i} className="relative">
+              {/* Background star (empty) */}
+              <Star className={cn("text-gray-600", sizeClasses[size])} />
+              
+              {/* Filled star overlay */}
+              {roundedValue >= starValue ? (
+                <Star 
+                  className={cn(
+                    "absolute top-0 left-0 text-amber-400", 
+                    sizeClasses[size]
+                  )}
+                  fill="currentColor"
+                />
+              ) : roundedValue >= starValue - 0.5 ? (
+                <span className="absolute top-0 left-0 overflow-hidden w-1/2">
+                  <Star 
+                    className={cn(
+                      "text-amber-400", 
+                      sizeClasses[size]
+                    )}
+                    fill="currentColor"
+                  />
+                </span>
+              ) : null}
+            </span>
+          );
+        })}
+      </div>
+      
+      <span className="ml-1.5 text-xs text-gray-400">
+        {value.toFixed(1)}
+      </span>
     </div>
   );
-}
+};
 
 export default Rating;
