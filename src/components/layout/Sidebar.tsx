@@ -7,11 +7,12 @@ import {
   TrendingUp, 
   BarChart2, 
   LayoutGrid, 
-  Coins, 
+  Coins,
   Search,
   Wallet,
   Rocket,
-  Home
+  Home,
+  Bitcoin
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
