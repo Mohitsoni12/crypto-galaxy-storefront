@@ -1,19 +1,19 @@
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { Upload, Loader2 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { GameFormData } from "@/types/game";
 
 const AdminPage = () => {
-  const { user } = useAuth();
-  const [formData, setFormData] = useState<GameFormData>({
+  const [gameData, setGameData] = useState<GameFormData>({
     title: "",
     description: "",
     trial_url: "",
@@ -23,11 +23,9 @@ const AdminPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setGameData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,88 +34,73 @@ const AdminPage = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
+    if (!gameData.title) {
       toast({
-        title: "Authentication Error",
-        description: "You must be logged in to upload games.",
+        title: "Missing Information",
+        description: "Please provide a title for the game.",
         variant: "destructive",
       });
       return;
     }
-
-    if (!file) {
-      toast({
-        title: "File required",
-        description: "Please select a game file to upload.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.title) {
-      toast({
-        title: "Title required",
-        description: "Please enter a title for the game.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
 
     try {
-      // 1. Upload the file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('game_files')
-        .upload(filePath, file);
+      setIsUploading(true);
 
-      if (uploadError) {
-        throw new Error(`Storage error: ${uploadError.message}`);
+      // Upload file to Supabase Storage (if provided)
+      let filePath = null;
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const fullPath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('game_files')
+          .upload(fullPath, file);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        filePath = fullPath;
       }
 
-      // 2. Insert the game data into the database
-      const { error: dbError } = await supabase
+      // Save game data to database
+      const { error: insertError } = await supabase
         .from('games')
         .insert({
-          title: formData.title,
-          description: formData.description || null,
+          title: gameData.title,
+          description: gameData.description || null,
           file_path: filePath,
-          trial_url: formData.trial_url || null,
+          trial_url: gameData.trial_url || null,
         });
 
-      if (dbError) {
-        throw new Error(`Database error: ${dbError.message}`);
+      if (insertError) {
+        throw insertError;
       }
 
       toast({
-        title: "Game uploaded successfully",
-        description: `${formData.title} has been added to the game library.`,
+        title: "Success!",
+        description: "Game has been uploaded successfully.",
       });
-      
-      // Reset the form
-      setFormData({
+
+      // Reset form
+      setGameData({
         title: "",
         description: "",
         trial_url: "",
       });
       setFile(null);
-      
-      // Redirect to the game list page
-      navigate("/");
+
     } catch (error: any) {
-      console.error("Error uploading game:", error);
       toast({
-        title: "Upload failed",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to upload game. Please try again.",
         variant: "destructive",
       });
+      console.error("Upload error:", error);
     } finally {
       setIsUploading(false);
     }
@@ -126,81 +109,80 @@ const AdminPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto py-8">
-        <Card className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+
+        <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">Upload a New Game</CardTitle>
-            <CardDescription>
-              Add a new game to the library. All fields with * are required.
-            </CardDescription>
+            <CardTitle>Upload New Game</CardTitle>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="title" className="text-sm font-medium">
-                  Title *
-                </label>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Game Title</Label>
                 <Input
                   id="title"
                   name="title"
-                  value={formData.title}
+                  value={gameData.title}
                   onChange={handleInputChange}
-                  placeholder="Game title"
+                  placeholder="Enter game title"
                   required
                 />
               </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="description" className="text-sm font-medium">
-                  Description
-                </label>
+
+              <div className="grid gap-2">
+                <Label htmlFor="description">Game Description</Label>
                 <Textarea
                   id="description"
                   name="description"
-                  value={formData.description}
+                  value={gameData.description}
                   onChange={handleInputChange}
-                  placeholder="Game description"
+                  placeholder="Enter game description"
                   rows={4}
                 />
               </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="file" className="text-sm font-medium">
-                  Game File (.zip, .exe, etc.) *
-                </label>
+
+              <div className="grid gap-2">
+                <Label htmlFor="file">Game File</Label>
                 <Input
                   id="file"
                   type="file"
                   onChange={handleFileChange}
-                  accept=".zip,.exe,.rar,.7z,.tar.gz"
-                  required
+                  accept=".zip,.exe,.rar,.7z"
                 />
-                {file && (
-                  <p className="text-xs text-green-500">
-                    Selected file: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  Upload game file (.zip, .exe, .rar, .7z)
+                </p>
               </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="trial_url" className="text-sm font-medium">
-                  Trial URL (optional)
-                </label>
+
+              <div className="grid gap-2">
+                <Label htmlFor="trial_url">Trial URL (Optional)</Label>
                 <Input
                   id="trial_url"
                   name="trial_url"
-                  value={formData.trial_url}
+                  value={gameData.trial_url}
                   onChange={handleInputChange}
                   placeholder="https://example.com/game-trial"
-                  type="url"
                 />
+                <p className="text-sm text-muted-foreground">
+                  URL to a playable web version of the game
+                </p>
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={isUploading}>
-                {isUploading ? "Uploading..." : "Upload Game"}
+
+              <Button type="submit" disabled={isUploading} className="w-full">
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Game
+                  </>
+                )}
               </Button>
-            </CardFooter>
-          </form>
+            </form>
+          </CardContent>
         </Card>
       </div>
     </MainLayout>

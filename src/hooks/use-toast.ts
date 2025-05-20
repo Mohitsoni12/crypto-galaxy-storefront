@@ -1,5 +1,5 @@
 
-import { useContext } from "react";
+import * as React from "react";
 import {
   ToastActionElement,
   ToastProps,
@@ -66,7 +66,7 @@ function dispatch(action: any) {
   });
 }
 
-interface Toast {
+interface ToastOptions {
   id?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
@@ -74,10 +74,10 @@ interface Toast {
   variant?: "default" | "destructive";
 }
 
-export function toast({ ...props }: Toast) {
-  const id = props.id || generateId();
+export function toast(options: ToastOptions) {
+  const id = options.id || generateId();
 
-  const update = (props: Toast) =>
+  const update = (props: ToastOptions) =>
     dispatch({
       type: actionTypes.UPDATE_TOAST,
       id,
@@ -89,7 +89,7 @@ export function toast({ ...props }: Toast) {
   dispatch({
     type: actionTypes.ADD_TOAST,
     toast: {
-      ...props,
+      ...options,
       open: true,
       onOpenChange: (open: boolean) => {
         if (!open) dismiss();

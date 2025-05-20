@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkUserRole = async (userId: string) => {
     try {
+      // Call the is_admin function we created in our SQL migration
       const { data, error } = await supabase.rpc('is_admin', { user_id: userId });
       
       if (error) {
