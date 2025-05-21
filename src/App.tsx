@@ -16,13 +16,13 @@ function App() {
         <Routes>
           <Route path="/" element={<GameListPage />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/trial/:gameId" element={<TrialPlayerPage />} />
           
           {/* Protected routes */}
           <Route element={<ProtectedRoute requireAdmin={true} />}>
             <Route path="/admin" element={<AdminPage />} />
           </Route>
           
-          <Route path="/trial/:gameId" element={<TrialPlayerPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

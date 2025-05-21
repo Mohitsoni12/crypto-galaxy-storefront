@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Download, Play, Loader2 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Game } from "@/types/game";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const GameListPage = () => {
   const [games, setGames] = useState<Game[]>([]);
@@ -55,6 +56,11 @@ const GameListPage = () => {
         description: "This game doesn't have a downloadable file.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // If user is not logged in, we don't proceed with download
+    if (!user) {
       return;
     }
 
@@ -147,19 +153,43 @@ const GameListPage = () => {
                   </p>
                 </CardContent>
                 <CardFooter className="flex justify-between gap-2">
-                  <Button
-                    variant={game.file_path ? "default" : "outline"}
-                    className="flex-1"
-                    disabled={!game.file_path || downloadingId === game.id}
-                    onClick={() => handleDownload(game)}
-                  >
-                    {downloadingId === game.id ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="mr-2 h-4 w-4" />
-                    )}
-                    Download
-                  </Button>
+                  {user ? (
+                    <Button
+                      variant={game.file_path ? "default" : "outline"}
+                      className="flex-1"
+                      disabled={!game.file_path || downloadingId === game.id}
+                      onClick={() => handleDownload(game)}
+                    >
+                      {downloadingId === game.id ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 h-4 w-4" />
+                      )}
+                      Download
+                    </Button>
+                  ) : (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="default" className="flex-1">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Login Required</DialogTitle>
+                          <DialogDescription>
+                            You need to be logged in to download games.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Link to="/auth">
+                            <Button>Login / Register</Button>
+                          </Link>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                   
                   {game.trial_url ? (
                     <Link to={`/trial/${game.id}`} className="flex-1">
