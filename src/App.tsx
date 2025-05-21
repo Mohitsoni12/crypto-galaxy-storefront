@@ -6,6 +6,7 @@ import GameListPage from "@/pages/GameListPage";
 import AuthPage from "@/pages/AuthPage";
 import AdminPage from "@/pages/AdminPage";
 import TrialPlayerPage from "@/pages/TrialPlayerPage";
+import UserDashboard from "@/pages/UserDashboard";
 import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -21,6 +22,10 @@ function App() {
           {/* Protected routes */}
           <Route element={<ProtectedRoute requireAdmin={true} />}>
             <Route path="/admin" element={<AdminPage />} />
+          </Route>
+          
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<UserDashboard />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />

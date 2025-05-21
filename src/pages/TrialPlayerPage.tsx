@@ -5,11 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Game } from "@/types/game";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Star, Loader2 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const TrialPlayerPage = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -45,7 +47,38 @@ const TrialPlayerPage = () => {
           return;
         }
 
-        setGame(data as Game);
+        // Get thumbnail URL
+        let thumbnailUrl = null;
+        if (data.thumbnail_path) {
+          const { data: urlData } = await supabase.storage
+            .from('game_thumbnails')
+            .getPublicUrl(data.thumbnail_path);
+          
+          if (urlData) {
+            thumbnailUrl = urlData.publicUrl;
+          }
+        }
+        
+        // Track user trial play history if logged in
+        if (user) {
+          const { error: historyError } = await supabase
+            .from('user_game_history')
+            .upsert({ 
+              user_id: user.id, 
+              game_id: gameId,
+              played_trial_at: new Date().toISOString(),
+              last_action: 'play_trial'
+            }, {
+              onConflict: 'user_id,game_id'
+            });
+
+          if (historyError) {
+            console.error("Error tracking play history:", historyError);
+          }
+        }
+
+        setGame({ ...data, thumbnailUrl } as Game);
+
       } catch (error: any) {
         console.error("Error fetching game:", error);
         toast({
@@ -60,7 +93,7 @@ const TrialPlayerPage = () => {
     };
 
     fetchGame();
-  }, [gameId, navigate, toast]);
+  }, [gameId, navigate, toast, user]);
 
   const handleDownload = async () => {
     if (!game || !game.file_path || !user) return;
@@ -83,6 +116,22 @@ const TrialPlayerPage = () => {
         
       if (updateError) {
         console.error("Error updating download count:", updateError);
+      }
+      
+      // Track user download history
+      const { error: historyError } = await supabase
+        .from('user_game_history')
+        .upsert({ 
+          user_id: user.id, 
+          game_id: game.id,
+          downloaded_at: new Date().toISOString(),
+          last_action: 'download'
+        }, {
+          onConflict: 'user_id,game_id'
+        });
+
+      if (historyError) {
+        console.error("Error tracking download history:", historyError);
       }
 
       // Trigger download
@@ -140,19 +189,23 @@ const TrialPlayerPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto py-4">
-        <div className="flex justify-between items-center mb-4">
-          <Button variant="ghost" onClick={() => navigate("/")}>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+          <Button variant="ghost" onClick={() => navigate("/")} className="self-start">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Games
           </Button>
-          <h1 className="text-2xl font-bold">{game.title} - Trial</h1>
-          <div>
+          
+          <div className="flex items-center justify-center gap-3">
+            <Badge variant="outline" className="bg-primary/10 text-primary">
+              Trial Version
+            </Badge>
+            
             {game.file_path && (
               user ? (
                 <Button 
-                  variant="outline"
                   onClick={handleDownload}
                   disabled={isDownloading}
+                  variant="default"
                 >
                   {isDownloading ? (
                     <>
@@ -169,7 +222,7 @@ const TrialPlayerPage = () => {
               ) : (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline">
+                    <Button>
                       <Download className="mr-2 h-4 w-4" />
                       Download Full Game
                     </Button>
@@ -193,7 +246,28 @@ const TrialPlayerPage = () => {
           </div>
         </div>
 
-        <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ height: "80vh" }}>
+        <Card className="mb-4">
+          <CardHeader className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            {game.thumbnailUrl && (
+              <div className="w-full md:w-24 h-24 rounded-lg overflow-hidden">
+                <img 
+                  src={game.thumbnailUrl} 
+                  alt={`${game.title} thumbnail`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div>
+              <CardTitle className="text-3xl">{game.title}</CardTitle>
+              <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                <Download className="h-4 w-4 mr-1" /> 
+                {game.download_count || 0} downloads
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+        
+        <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-xl border border-primary/20" style={{ height: "70vh" }}>
           <iframe
             src={game.trial_url}
             title={`${game.title} Trial`}
@@ -204,10 +278,12 @@ const TrialPlayerPage = () => {
         </div>
         
         {game.description && (
-          <div className="mt-4 p-4 bg-muted rounded-lg">
-            <h2 className="text-xl font-semibold mb-2">About This Game</h2>
-            <p>{game.description}</p>
-          </div>
+          <Card className="mt-6">
+            <CardContent className="pt-6">
+              <h2 className="text-2xl font-semibold mb-3">About This Game</h2>
+              <p className="text-gray-700 dark:text-gray-300">{game.description}</p>
+            </CardContent>
+          </Card>
         )}
       </div>
     </MainLayout>

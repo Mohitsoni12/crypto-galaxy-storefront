@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Upload, Loader2, Edit, Trash, FileText, EyeOff, Eye } from "lucide-react";
+import { Upload, Loader2, Edit, Trash, FileText, EyeOff, Eye, Download } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Game, GameFormData } from "@/types/game";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +32,7 @@ const AdminPage = () => {
   });
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -54,7 +55,22 @@ const AdminPage = () => {
       }
 
       if (data) {
-        setGames(data as Game[]);
+        // Get thumbnail URLs for each game
+        const gamesWithThumbnailUrls = await Promise.all(data.map(async (game) => {
+          let thumbnailUrl = null;
+          if (game.thumbnail_path) {
+            const { data: urlData } = await supabase.storage
+              .from('game_thumbnails')
+              .getPublicUrl(game.thumbnail_path);
+            
+            if (urlData) {
+              thumbnailUrl = urlData.publicUrl;
+            }
+          }
+          return { ...game, thumbnailUrl };
+        }));
+        
+        setGames(gamesWithThumbnailUrls as Game[]);
       }
     } catch (error: any) {
       console.error("Error fetching games:", error);
@@ -86,6 +102,12 @@ const AdminPage = () => {
     }
   };
 
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setThumbnail(e.target.files[0]);
+    }
+  };
+
   const resetForm = () => {
     setGameData({
       title: "",
@@ -93,6 +115,7 @@ const AdminPage = () => {
       trial_url: "",
     });
     setFile(null);
+    setThumbnail(null);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -109,6 +132,24 @@ const AdminPage = () => {
 
     try {
       setIsUploading(true);
+
+      // Upload thumbnail to Supabase Storage (if provided)
+      let thumbnailPath = null;
+      if (thumbnail) {
+        const fileExt = thumbnail.name.split('.').pop();
+        const fileName = `thumbnail_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const fullPath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('game_thumbnails')
+          .upload(fullPath, thumbnail);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        thumbnailPath = fullPath;
+      }
 
       // Upload file to Supabase Storage (if provided)
       let filePath = null;
@@ -136,6 +177,7 @@ const AdminPage = () => {
           description: gameData.description || null,
           file_path: filePath,
           trial_url: gameData.trial_url || null,
+          thumbnail_path: thumbnailPath,
         });
 
       if (insertError) {
@@ -168,6 +210,31 @@ const AdminPage = () => {
     
     try {
       setIsUploading(true);
+
+      // Upload thumbnail to Supabase Storage (if provided)
+      let thumbnailPath = selectedGame.thumbnail_path;
+      if (thumbnail) {
+        // Delete existing thumbnail if there is one
+        if (selectedGame.thumbnail_path) {
+          await supabase.storage
+            .from('game_thumbnails')
+            .remove([selectedGame.thumbnail_path]);
+        }
+
+        const fileExt = thumbnail.name.split('.').pop();
+        const fileName = `thumbnail_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const fullPath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('game_thumbnails')
+          .upload(fullPath, thumbnail);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        thumbnailPath = fullPath;
+      }
 
       // Upload file to Supabase Storage (if provided)
       let filePath = selectedGame.file_path;
@@ -202,6 +269,7 @@ const AdminPage = () => {
           description: selectedGame.description,
           file_path: filePath,
           trial_url: selectedGame.trial_url,
+          thumbnail_path: thumbnailPath,
         })
         .eq('id', selectedGame.id);
 
@@ -216,6 +284,7 @@ const AdminPage = () => {
 
       setSelectedGame(null);
       setFile(null);
+      setThumbnail(null);
       fetchGames();
 
     } catch (error: any) {
@@ -232,8 +301,15 @@ const AdminPage = () => {
 
   const handleDeleteGame = async (gameId: string) => {
     try {
-      // Find the game to get its file_path
+      // Find the game to get its file_path and thumbnail_path
       const gameToDelete = games.find(g => g.id === gameId);
+      
+      // Delete thumbnail from storage if it exists
+      if (gameToDelete?.thumbnail_path) {
+        await supabase.storage
+          .from('game_thumbnails')
+          .remove([gameToDelete.thumbnail_path]);
+      }
       
       // Delete file from storage if it exists
       if (gameToDelete?.file_path) {
@@ -311,17 +387,32 @@ const AdminPage = () => {
                     />
                   </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="file">Game File</Label>
-                    <Input
-                      id="file"
-                      type="file"
-                      onChange={handleFileChange}
-                      accept=".zip,.exe,.rar,.7z"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Upload game file (.zip, .exe, .rar, .7z)
-                    </p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="file">Game File</Label>
+                      <Input
+                        id="file"
+                        type="file"
+                        onChange={handleFileChange}
+                        accept=".zip,.exe,.rar,.7z"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Upload game file (.zip, .exe, .rar, .7z)
+                      </p>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="thumbnail">Game Thumbnail</Label>
+                      <Input
+                        id="thumbnail"
+                        type="file"
+                        onChange={handleThumbnailChange}
+                        accept="image/*"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Upload game thumbnail (JPG, PNG)
+                      </p>
+                    </div>
                   </div>
 
                   <div className="grid gap-2">
@@ -377,27 +468,43 @@ const AdminPage = () => {
                       <Card key={game.id} className="overflow-hidden">
                         <CardContent className="p-6">
                           <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                              <h3 className="font-semibold text-lg">{game.title}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {game.description || "No description available"}
-                              </p>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                                <div className="flex items-center">
-                                  <Download className="h-4 w-4 mr-1" /> 
-                                  {game.download_count || 0} downloads
+                            <div className="flex gap-4">
+                              {/* Thumbnail preview */}
+                              {game.thumbnailUrl ? (
+                                <div className="w-20 h-20 rounded-md overflow-hidden flex-shrink-0">
+                                  <img 
+                                    src={game.thumbnailUrl} 
+                                    alt={`${game.title} thumbnail`}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
-                                <div className="flex items-center">
-                                  <FileText className="h-4 w-4 mr-1" /> 
-                                  {game.file_path ? "File available" : "No file"}
+                              ) : (
+                                <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                                  <FileText className="h-8 w-8 text-muted-foreground" />
                                 </div>
-                                <div className="flex items-center">
-                                  {game.trial_url ? (
-                                    <Eye className="h-4 w-4 mr-1" />
-                                  ) : (
-                                    <EyeOff className="h-4 w-4 mr-1" />
-                                  )}
-                                  {game.trial_url ? "Trial available" : "No trial"}
+                              )}
+                              <div className="space-y-1">
+                                <h3 className="font-semibold text-lg">{game.title}</h3>
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {game.description || "No description available"}
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                                  <div className="flex items-center">
+                                    <Download className="h-4 w-4 mr-1" /> 
+                                    {game.download_count || 0} downloads
+                                  </div>
+                                  <div className="flex items-center">
+                                    <FileText className="h-4 w-4 mr-1" /> 
+                                    {game.file_path ? "File available" : "No file"}
+                                  </div>
+                                  <div className="flex items-center">
+                                    {game.trial_url ? (
+                                      <Eye className="h-4 w-4 mr-1" />
+                                    ) : (
+                                      <EyeOff className="h-4 w-4 mr-1" />
+                                    )}
+                                    {game.trial_url ? "Trial available" : "No trial"}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -442,17 +549,43 @@ const AdminPage = () => {
                                         />
                                       </div>
 
-                                      <div className="grid gap-2">
-                                        <Label htmlFor="edit-file">Game File</Label>
-                                        <Input
-                                          id="edit-file"
-                                          type="file"
-                                          onChange={handleFileChange}
-                                          accept=".zip,.exe,.rar,.7z"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                          {selectedGame.file_path ? 'A file is already uploaded. Uploading a new file will replace it.' : 'No file currently uploaded.'}
-                                        </p>
+                                      <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="grid gap-2">
+                                          <Label htmlFor="edit-file">Game File</Label>
+                                          <Input
+                                            id="edit-file"
+                                            type="file"
+                                            onChange={handleFileChange}
+                                            accept=".zip,.exe,.rar,.7z"
+                                          />
+                                          <p className="text-xs text-muted-foreground">
+                                            {selectedGame.file_path ? 'A file is already uploaded. Uploading a new file will replace it.' : 'No file currently uploaded.'}
+                                          </p>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                          <Label htmlFor="edit-thumbnail">Game Thumbnail</Label>
+                                          <Input
+                                            id="edit-thumbnail"
+                                            type="file"
+                                            onChange={handleThumbnailChange}
+                                            accept="image/*"
+                                          />
+                                          <p className="text-xs text-muted-foreground">
+                                            {selectedGame.thumbnail_path ? 'A thumbnail is already uploaded. Uploading a new one will replace it.' : 'No thumbnail currently uploaded.'}
+                                          </p>
+                                          
+                                          {selectedGame.thumbnailUrl && (
+                                            <div className="mt-2">
+                                              <p className="text-xs mb-1">Current thumbnail:</p>
+                                              <img 
+                                                src={selectedGame.thumbnailUrl} 
+                                                alt="Current thumbnail" 
+                                                className="h-20 w-auto object-contain rounded-md border border-border"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
 
                                       <div className="grid gap-2">
