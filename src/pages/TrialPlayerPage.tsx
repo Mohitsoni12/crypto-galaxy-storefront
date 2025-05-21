@@ -1,16 +1,18 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Game } from "@/types/game";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Download, Star, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import TrialPageHeader from "@/components/trial/TrialPageHeader";
+import GameInfoCard from "@/components/trial/GameInfoCard";
+import GameDescription from "@/components/trial/GameDescription";
+import TrialFrame from "@/components/trial/TrialFrame";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 const TrialPlayerPage = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -153,12 +155,7 @@ const TrialPlayerPage = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-lg">Loading trial...</p>
-          </div>
-        </div>
+        <DashboardLoading message="Loading trial..." />
       </MainLayout>
     );
   }
@@ -180,102 +177,18 @@ const TrialPlayerPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto py-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-          <Button variant="ghost" onClick={() => navigate("/")} className="self-start">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Games
-          </Button>
-          
-          <div className="flex items-center justify-center gap-3">
-            <Badge variant="outline" className="bg-primary/10 text-primary">
-              Trial Version
-            </Badge>
-            
-            {game.file_path && (
-              user ? (
-                <Button 
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                  variant="default"
-                >
-                  {isDownloading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Full Game
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Full Game
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Login Required</DialogTitle>
-                      <DialogDescription>
-                        You need to be logged in to download the full game.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Link to="/auth" state={{ from: { pathname: `/trial/${gameId}` } }}>
-                        <Button>Login / Register</Button>
-                      </Link>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )
-            )}
-          </div>
-        </div>
+        <TrialPageHeader 
+          game={game}
+          isDownloading={isDownloading}
+          handleDownload={handleDownload}
+          user={user}
+        />
 
-        <Card className="mb-4">
-          <CardHeader className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-            {game.thumbnailUrl && (
-              <div className="w-full md:w-24 h-24 rounded-lg overflow-hidden">
-                <img 
-                  src={game.thumbnailUrl} 
-                  alt={`${game.title} thumbnail`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <div>
-              <CardTitle className="text-3xl">{game.title}</CardTitle>
-              <div className="flex items-center mt-2 text-sm text-muted-foreground">
-                <Download className="h-4 w-4 mr-1" /> 
-                {game.download_count || 0} downloads
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+        <GameInfoCard game={game} />
         
-        <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-xl border border-primary/20" style={{ height: "70vh" }}>
-          <iframe
-            src={game.trial_url}
-            title={`${game.title} Trial`}
-            className="absolute inset-0 w-full h-full"
-            allowFullScreen
-            sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
-          />
-        </div>
+        <TrialFrame title={game.title} trialUrl={game.trial_url} />
         
-        {game.description && (
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <h2 className="text-2xl font-semibold mb-3">About This Game</h2>
-              <p className="text-gray-700 dark:text-gray-300">{game.description}</p>
-            </CardContent>
-          </Card>
-        )}
+        <GameDescription description={game.description} />
       </div>
     </MainLayout>
   );

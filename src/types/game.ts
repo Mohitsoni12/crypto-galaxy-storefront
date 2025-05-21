@@ -18,6 +18,18 @@ export interface GameFormData {
   trial_url: string;
 }
 
+export interface GameHistory {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  file_path: string | null;
+  trial_url: string | null;
+  downloaded_at: string | null;
+  played_trial_at: string | null;
+  last_action: 'download' | 'play_trial';
+}
+
 export interface UserGameHistory {
   id: string;
   user_id: string;
