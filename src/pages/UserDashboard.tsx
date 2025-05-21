@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Download, Play } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Link } from "react-router-dom";
+import { Game } from "@/types/game";
 
 interface GameHistory {
   id: string;
@@ -47,19 +47,12 @@ const UserDashboard = () => {
     try {
       setIsLoading(true);
       
-      // Query user game history
+      // Query user game history with game data
       const { data: historyData, error: historyError } = await supabase
         .from('user_game_history')
         .select(`
           *,
-          game:game_id (
-            id,
-            title,
-            description,
-            file_path,
-            trial_url,
-            thumbnail_path
-          )
+          game:games(*)
         `)
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
@@ -70,7 +63,7 @@ const UserDashboard = () => {
 
       if (historyData) {
         // Process and enrich the game history data
-        const processedGames = await Promise.all(historyData.map(async (item) => {
+        const processedGames = await Promise.all(historyData.map(async (item: any) => {
           const game = item.game;
           let thumbnailUrl = null;
           

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +60,7 @@ const TrialPlayerPage = () => {
         
         // Track user trial play history if logged in
         if (user) {
-          const { error: historyError } = await supabase
+          await supabase
             .from('user_game_history')
             .upsert({ 
               user_id: user.id, 
@@ -71,10 +70,6 @@ const TrialPlayerPage = () => {
             }, {
               onConflict: 'user_id,game_id'
             });
-
-          if (historyError) {
-            console.error("Error tracking play history:", historyError);
-          }
         }
 
         setGame({ ...data, thumbnailUrl } as Game);
@@ -119,7 +114,7 @@ const TrialPlayerPage = () => {
       }
       
       // Track user download history
-      const { error: historyError } = await supabase
+      await supabase
         .from('user_game_history')
         .upsert({ 
           user_id: user.id, 
@@ -129,10 +124,6 @@ const TrialPlayerPage = () => {
         }, {
           onConflict: 'user_id,game_id'
         });
-
-      if (historyError) {
-        console.error("Error tracking download history:", historyError);
-      }
 
       // Trigger download
       const link = document.createElement('a');

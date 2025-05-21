@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,7 +134,7 @@ const GameListPage = () => {
       }
 
       // Track user download history
-      const { error: historyError } = await supabase
+      await supabase
         .from('user_game_history')
         .upsert({ 
           user_id: user.id, 
@@ -145,10 +144,6 @@ const GameListPage = () => {
         }, {
           onConflict: 'user_id,game_id'
         });
-
-      if (historyError) {
-        console.error("Error tracking download history:", historyError);
-      }
 
       // Trigger download
       const link = document.createElement('a');

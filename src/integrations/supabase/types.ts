@@ -16,6 +16,7 @@ export type Database = {
           download_count: number | null
           file_path: string | null
           id: string
+          thumbnail_path: string | null
           title: string
           trial_url: string | null
           updated_at: string | null
@@ -26,6 +27,7 @@ export type Database = {
           download_count?: number | null
           file_path?: string | null
           id?: string
+          thumbnail_path?: string | null
           title: string
           trial_url?: string | null
           updated_at?: string | null
@@ -36,11 +38,53 @@ export type Database = {
           download_count?: number | null
           file_path?: string | null
           id?: string
+          thumbnail_path?: string | null
           title?: string
           trial_url?: string | null
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_game_history: {
+        Row: {
+          created_at: string | null
+          downloaded_at: string | null
+          game_id: string
+          id: string
+          last_action: string
+          played_trial_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          downloaded_at?: string | null
+          game_id: string
+          id?: string
+          last_action: string
+          played_trial_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          downloaded_at?: string | null
+          game_id?: string
+          id?: string
+          last_action?: string
+          played_trial_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_game_history_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

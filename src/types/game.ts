@@ -6,7 +6,7 @@ export interface Game {
   download_count: number;
   file_path: string | null;
   trial_url: string | null;
-  thumbnail_path?: string | null;
+  thumbnail_path: string | null;
   thumbnailUrl?: string | null; // Client-side URL for display
   created_at: string;
   updated_at: string;
@@ -27,4 +27,5 @@ export interface UserGameHistory {
   last_action: 'download' | 'play_trial'; 
   created_at: string;
   updated_at: string;
+  game?: Game;
 }
