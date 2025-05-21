@@ -69,10 +69,14 @@ const GameListPage = () => {
       if (error) throw error;
 
       // Update download count
-      await supabase
+      const { error: updateError } = await supabase
         .from('games')
         .update({ download_count: (game.download_count || 0) + 1 })
         .eq('id', game.id);
+        
+      if (updateError) {
+        console.error("Error updating download count:", updateError);
+      }
 
       // Trigger download
       const link = document.createElement('a');

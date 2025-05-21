@@ -40,7 +40,7 @@ const TrialPlayerPage = () => {
           return;
         }
 
-        setGame(data);
+        setGame(data as Game);
       } catch (error: any) {
         console.error("Error fetching game:", error);
         toast({

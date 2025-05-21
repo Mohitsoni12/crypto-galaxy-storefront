@@ -11,16 +11,55 @@ export type Database = {
     Tables: {
       games: {
         Row: {
-          bigint: number
-          created_at: string
+          created_at: string | null
+          description: string | null
+          download_count: number | null
+          file_path: string | null
+          id: string
+          title: string
+          trial_url: string | null
+          updated_at: string | null
         }
         Insert: {
-          bigint?: number
-          created_at?: string
+          created_at?: string | null
+          description?: string | null
+          download_count?: number | null
+          file_path?: string | null
+          id?: string
+          title: string
+          trial_url?: string | null
+          updated_at?: string | null
         }
         Update: {
-          bigint?: number
-          created_at?: string
+          created_at?: string | null
+          description?: string | null
+          download_count?: number | null
+          file_path?: string | null
+          id?: string
+          title?: string
+          trial_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -29,10 +68,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -147,6 +193,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "user"],
+    },
   },
 } as const
